@@ -88,9 +88,7 @@ namespace ZBC {
 			return;
 		} // end Capture
 		
-		public void move(ulong[] coordinates){
-			Console.WriteLine("wah");
-			Console.WriteLine(coordinates[0]);
+		private void move(ulong[] coordinates){
 			
 			// look for the intersection of the start coordinate and a piece
 			int pieces_iterator = 0;
