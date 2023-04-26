@@ -6,11 +6,14 @@ namespace ZBC {
 		
 		// class variables //
 		public ulong[] pieces;
+		public int[] pieces_captured;
 		private char[] piece_symbol = {'p', 'b', 'n', 'r', 'q', 'k'};
+		private string[] piece_name = {"pawn", "bishop", "knight", "rook", "queen", "king"};
 		
 		// structors //
 		public Bitboard(){
-			this.pieces = new ulong[] {
+			
+			this.pieces = new ulong[] { // ulongs are 64 bits, 1 bit per square. This represents piece positions.
 				0xFF000000000000, // white pawn
 				0x2400000000000000, // white bishop
 				0x4200000000000000, // white knight
@@ -24,6 +27,9 @@ namespace ZBC {
 				0x10, // black queen
 				0x8 // black king
 			};
+			
+			this.pieces_captured = new int[] { 0,0,0,0,0,0,0,0,0,0,0,0 };
+			
 		} // end constructor Bitboard
 		
 		// utilities //
@@ -51,12 +57,40 @@ namespace ZBC {
 			return (ulong)0x1 << - rank_file[0] + (8 - rank_file[1]) * 8 - 1;
 		}
 		
-		public void move(string[] coordinates_string){
-			if(coordinates_string.Length != 2){ return; }
-			ulong[] coordinates = {
-				coordinates_to_bitboard(coordinates_string[0]),
-				coordinates_to_bitboard(coordinates_string[1])
-			};
+		private void spawn(ulong new_piece_bitmap, int piece_index){ // spawns a piece corresponding to the int's index to this.pieces at the location specified by the bitmap
+			this.pieces[piece_index] = this.pieces[piece_index] | new_piece_bitmap;
+			return;
+		} // end spawn
+		
+		public void Spawn(string color, string piece, string coordinates){ // spawns a piece corresponding to the int's index to this.pieces at the location specified by the bitmap
+			int piece_index = Array.IndexOf(this.piece_name, piece);
+			if(color.Equals("black")){
+				piece_index += 6;
+			}
+			this.spawn(coordinates_to_bitboard(coordinates), piece_index);
+			return;
+		} // end Spawn
+		
+		private void capture(ulong bitmap){ // moves the piece at the specified location from the bitmap to the appropriate captured map.
+			int pieces_iterator = 0;
+			while(pieces_iterator < this.pieces.Length){
+				if( (this.pieces[pieces_iterator] & bitmap) != 0x0){
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ bitmap;
+					this.pieces_captured[pieces_iterator]++;
+					return;
+				}
+				pieces_iterator++;
+			}
+		} // end capture
+		
+		public void Capture(string coordinates){
+			this.capture(coordinates_to_bitboard(coordinates));
+			return;
+		} // end Capture
+		
+		public void move(ulong[] coordinates){
+			Console.WriteLine("wah");
+			Console.WriteLine(coordinates[0]);
 			
 			// look for the intersection of the start coordinate and a piece
 			int pieces_iterator = 0;
@@ -69,7 +103,17 @@ namespace ZBC {
 				}
 				pieces_iterator++;
 			}
+			return;
 		} // end move
+		
+		public void Move(string[] coordinates_string){
+			Console.WriteLine(coordinates_string[0]);
+			this.move( new ulong[] {
+				coordinates_to_bitboard(coordinates_string[0]),	
+				coordinates_to_bitboard(coordinates_string[1]) }
+			);
+			return;
+		} // end Move
 		
 		// display //
 		private char[] ulong_to_chars(ulong bitmap){
