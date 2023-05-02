@@ -12,10 +12,13 @@ namespace ZBC{
 		public Bitboard[] gamestate_shadow;
 		
 		public int halfmove_counter;
-		public int fullmove_counter{ get{ return Convert.ToInt32(Math.Floor(this.halfmove_counter / 2.0)); } }
 		
+		//FEN stuff
+		public int PlayerToMove;
+		public ulong[] CastlingRights;
+		public ulong[] EnPassanteTargetSquare
 		public int halfmove_clock;
-		public ulong[] castling_rights;
+		public int fullmove_counter{ get{ return Convert.ToInt32(Math.Floor(this.halfmove_counter / 2.0)); } }
 		
 		// structors //
 		
@@ -32,6 +35,12 @@ namespace ZBC{
 		
 		public void WriteFEN(){
 		}//end WriteFEN
+		
+		public void ReadEPD(){
+		}//end ReadEPD
+		
+		public void WriteEPD(){
+		}//end WriteEPD
 		
 		public void ReadPGN(){
 		}//end ReadPGN
