@@ -2,17 +2,20 @@ using System;
 
 namespace ZBC {
 	
-	public class Bitboard {
+	public class Bitboard{
 		
-		// class variables //
+		// vars //
+		
+		private static char[] piece_symbol = {'p', 'n', 'b', 'r', 'q', 'k'};
+		private static string[] piece_name = {"pawn", "knight", "bishop", "rook", "queen", "king"};
+		
+		// piece_deltas
+		
 		public ulong[] pieces;
-		public int[] pieces_captured;
-		private char[] piece_symbol = {'p', 'b', 'n', 'r', 'q', 'k'};
-		private string[] piece_name = {"pawn", "bishop", "knight", "rook", "queen", "king"};
 		
-		// structors //
 		public Bitboard(){
-			
+			//TODO endianess and stuff need to be determined. gotta read more. maybe just do both?
+			/* 
 			this.pieces = new ulong[] { // ulongs are 64 bits, 1 bit per square. This represents piece positions.
 				0xFF000000000000, // white pawn
 				0x2400000000000000, // white bishop
@@ -27,13 +30,25 @@ namespace ZBC {
 				0x10, // black queen
 				0x8 // black king
 			};
-			
-			this.pieces_captured = new int[] { 0,0,0,0,0,0,0,0,0,0,0,0 };
+			*/
 			
 		} // end constructor Bitboard
 		
-		// utilities //
-		public static ulong coordinates_to_bitboard(string coordinates){
+		// utilities//
+		
+		public static string UlongToString(ulong bitmap){
+			string ulong_as_string = Convert.ToString(unchecked((long) bitmap), 2);
+			while(ulong_as_string.Length < 64){ // Add leading zeroes until we get to 64 elements
+				ulong_as_string = "0" + ulong_as_string; 
+			}
+			return ulong_as_string;
+		} // end UlongToString
+		
+		public static ulong CoordinateToUlong(string coordinate){
+			char[] fileIds = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+			//TODO how to convert depends on mapping method
+			
+			/* 
 			char[] fileIds = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 			char[] coordinate_chararray;
 			
@@ -55,77 +70,65 @@ namespace ZBC {
 			
 			// Now convert these coordinates to a bitboard.
 			return (ulong)0x1 << - rank_file[0] + (8 - rank_file[1]) * 8 - 1;
-		}
-		
-		private void spawn(ulong new_piece_bitmap, int piece_index){ // spawns a piece corresponding to the int's index to this.pieces at the location specified by the bitmap
-			this.pieces[piece_index] = this.pieces[piece_index] | new_piece_bitmap;
-			return;
-		} // end spawn
-		
-		public void Spawn(string color, string piece, string coordinates){ // spawns a piece corresponding to the int's index to this.pieces at the location specified by the bitmap
-			int piece_index = Array.IndexOf(this.piece_name, piece);
-			if(color.Equals("black")){
-				piece_index += 6;
-			}
-			this.spawn(coordinates_to_bitboard(coordinates), piece_index);
-			return;
-		} // end Spawn
-		
-		private void capture(ulong bitmap){ // moves the piece at the specified location from the bitmap to the appropriate captured map.
-			int pieces_iterator = 0;
-			while(pieces_iterator < this.pieces.Length){
-				if( (this.pieces[pieces_iterator] & bitmap) != 0x0){
-					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ bitmap;
-					this.pieces_captured[pieces_iterator]++;
-					return;
-				}
-				pieces_iterator++;
-			}
-		} // end capture
-		
-		public void Capture(string coordinates){
-			this.capture(coordinates_to_bitboard(coordinates));
-			return;
-		} // end Capture
-		
-		private void move(ulong[] coordinates){
+			*/
 			
-			// look for the intersection of the start coordinate and a piece
+			return (ulong)0x1;
+		} // end CoordinateToUlong
+		
+		// methods//
+		
+		public void PieceCreate(int piece_type, ulong coordiante){
+			// TODO - piece_type determined by if using compact bitboards or not
+		} // end PieceCreate
+		
+		public void PieceRemove(ulong coordinate){
 			int pieces_iterator = 0;
 			while(pieces_iterator < this.pieces.Length){
-				// if you find the intersection, delete the piece and then move it to the end destination.
-				if((pieces[pieces_iterator] & coordinates[0]) != 0x0){
-					pieces[pieces_iterator] = pieces[pieces_iterator] ^ coordinates[0];
-					pieces[pieces_iterator] = pieces[pieces_iterator] ^ coordinates[1];
-					return;
+				if( (this.pieces[pieces_iterator] & coordinate) != 0x0){
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ coordinate;
 				}
 				pieces_iterator++;
 			}
 			return;
-		} // end move
+		} // end PieceRemove
 		
-		public void Move(string[] coordinates_string){
-			Console.WriteLine(coordinates_string[0]);
-			this.move( new ulong[] {
-				coordinates_to_bitboard(coordinates_string[0]),	
-				coordinates_to_bitboard(coordinates_string[1]) }
-			);
-			return;
-		} // end Move
-		
-		// display //
-		private char[] ulong_to_chars(ulong bitmap){
-			string bitmap_as_string = Convert.ToString(unchecked((long) bitmap), 2);
-			
-			// Add leading zeroes until we get to 64 elements
-			while(bitmap_as_string.Length < 64){ 
-				bitmap_as_string = "0" + bitmap_as_string; 
+		public void PieceMove(ulong coordinate_start, ulong coordinate_end){
+			int pieces_iterator = 0;
+			while(pieces_iterator < this.pieces.Length){
+				if( (this.pieces[pieces_iterator] & coordinate_start) != 0x0){
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ coordinate_start;
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] | coordinate_end;
+				}
+				pieces_iterator++;
 			}
+			return;
+		} // end PieceMove
+		
+		public static Bitboard ReadFENPosition(string FEN_text){
+			//TODO how we read depends on how we record the pieces
+			return new Bitboard();
+		} // end ReadFENPosition
+		
+		public string WriteFENPosition(){
+			//TODO how we write depends on how we record the pieces
+			return "";
+		} // end WriteFENPosition
+		
+		public Bitboard create_copy(){
+			Bitboard return_bitboard = new Bitboard();
+			return_bitboard.pieces = new ulong[this.pieces.Length];
 			
-			return bitmap_as_string.ToCharArray();
-		} // end ulong_to_chars
+			int piece_iterator = 0;
+			while(piece_iterator < this.pieces.Length){
+				return_bitboard.pieces[piece_iterator] = this.pieces[piece_iterator];
+				piece_iterator++;
+			}
+			return return_bitboard;
+		} // end create_copy
 		
 		public override string ToString(){
+			//TODO debug display
+			/*
 			char[] return_bitboard = ulong_to_chars(0x0);
 			
 			// iterate over each piece's bitmap
@@ -157,7 +160,26 @@ namespace ZBC {
 				string_iterator--;
 			}
 			return " " + String.Join(" ", return_string.ToCharArray()).Replace('0', '-');
+			*/
+			return "";
 		} // end override ToString
 		
 	} // end class Bitboard
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/* 
+
+		public static ulong coordinates_to_bitboard(string coordinates){
+			
+		}
+		
+
+	
 } // end namespace ZBC
