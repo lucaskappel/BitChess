@@ -16,7 +16,7 @@ namespace ZBC{
 		//FEN stuff
 		public int PlayerToMove;
 		public ulong[] CastlingRights;
-		public ulong[] EnPassanteTargetSquare
+		public ulong[] EnPassanteTargetSquare;
 		public int halfmove_clock;
 		public int fullmove_counter{ get{ return Convert.ToInt32(Math.Floor(this.halfmove_counter / 2.0)); } }
 		
