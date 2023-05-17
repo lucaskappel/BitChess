@@ -26,6 +26,8 @@ namespace ZBC {
 		
 		public ulong[] pieces;
 		
+		// structors //
+		
 		public Bitboard(){
 			this.pieces = new ulong[] { // little-endian rank-file mapping
 				0x000000000000ffff, // white
@@ -101,7 +103,7 @@ namespace ZBC {
 			h8 = 00111111 & 00000111 = 00000111 = 7
 			*/
 			return squareIndex & 7;
-		}
+		} // end static FileIndex
 		
 		public static int RankIndex(int squareIndex){
 			/* Translates the square index into the rank index.
@@ -117,24 +119,22 @@ namespace ZBC {
 			h8 = 00111111 >> 3 = 00000111 = 7
 			*/
 			return squareIndex >> 3;
-		}
+		} // end static RankIndex
 
-		public static ulong SquareIndexToBitmap(int squareIndex){
+		public static ulong SquareIndexToUlong(int squareIndex){
 			return (ulong)Math.Pow(2, squareIndex);
-		}
+		} // end static SquareIndexToUlong
 
-		// utilities//		
+		public static ulong CoordinateToUlong(string coordinate){
+			int squareIndex = SquareIndex(coordinate);
+			return SquareIndexToUlong(squareIndex);
+		} // end static CoordinateToUlong
+
+		// display //		
 		
-		public static char[] UlongToVisualizedChars(ulong bitmap){
-			// converts to char[64] and orders the chars to the bitboard indexing
-			
-			// Add leading zeroes until we get to 64 elements
-			string ulong_as_string = Convert.ToString(unchecked((long) bitmap), 2);
-			while(ulong_as_string.Length < 64){
-				ulong_as_string = "0" + ulong_as_string; 
-			}
-			
-			// Now map this to the visual chess board
+		public static char[] UlongToVisualBoardOrder(ulong bitmap){
+			// converts to char[64] and orders the chars to the bitboard's visual indexing
+			string ulong_as_string = UlongToString(bitmap);
 			string mappedString = "";
 			char[] workbench;
 			while(mappedString.Length < 64){
@@ -150,50 +150,41 @@ namespace ZBC {
 			while(ulong_as_string.Length < 64){ // Add leading zeroes until we get to 64 elements
 				ulong_as_string = "0" + ulong_as_string; 
 			}
-			
-			
-			
 			return ulong_as_string;
 		} // end UlongToString
 		
-		public static ulong CoordinateToUlong(string coordinates){
+		public override string ToString(){
+			char[] workArray = new char[64];
+			for(int i=0; i < workArray.Length; i++){ workArray[i] = '-'; }
 			
-			char[] fileIds = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-			char[] coordinate_chararray;
+			for(int piece_iterator = 2; piece_iterator < this.pieces.Length; piece_iterator++){
+				for(int color_iterator = 0; color_iterator < 2; color_iterator++){
+					// get the array of characters representing the right set of pieces
+					ulong currentBitmap = this.pieces[color_iterator] & this.pieces[piece_iterator];
+					char[] currentBitmapChars = UlongToVisualBoardOrder(currentBitmap);
+					
+					// set the character to represent the current set of pieces
+					char currentPieceSymbol = piece_symbol[piece_iterator];
+					if(color_iterator == 0){ currentPieceSymbol = Char.ToUpper(currentPieceSymbol); }
+					
+					// Replace the appropriate indices with the current character
+					int bit_index = Array.IndexOf(currentBitmapChars, '1');
+					while(bit_index >= 0){
+						workArray[bit_index] = currentPieceSymbol;
+						currentBitmapChars[bit_index] = currentPieceSymbol;
+						bit_index = Array.IndexOf(currentBitmapChars, '1');
+					} // end bit loop
+				} // end color_iterator loop
+			} // end piece_iterator loop
 			
-			try{ 
-				coordinate_chararray = coordinates.ToCharArray(); 
+			string returnString = " " + String.Join(" ", workArray);
+			for(int stringIndex = 2*(64-8); stringIndex > 0; stringIndex -= 8*2){ 
+				returnString = returnString.Insert(stringIndex, "\n"); 
 			}
-			catch(Exception e){ 
-				Console.WriteLine(e.Message + "\nError trying to convert coordinates to bitboard: " + coordinates);
-				return 0x0;	
-			}
-			if(coordinate_chararray.Length != 2){ return 0x0; }
-			
-			// convert the characters to rank/file coordinates, and verify the number is in the correct range
-			int[] rank_file = { 
-				(int)coordinate_chararray[0] - 97, // 97 is the char id for 'a'
-				(int)coordinate_chararray[1] - 49  // 49 is the char id for '0'
-			};
-			if(rank_file[0] < 0 | rank_file[0] > 7 | rank_file[1] < 0 | rank_file[1] > 7 ){ return 0x0; }
-			
-			// Now convert these coordinates to a bitboard.
-			return (ulong)0x1 << - rank_file[0] + (8 - rank_file[1]) * 8 - 1;
-			
-		} // end CoordinateToUlong
-			
-		public static string DebugBitmap(ulong bitmap){
-			string return_string_base = UlongToString(bitmap);
-			string return_string = "";
-			int string_iterator = 7;
-			while(string_iterator >= 0){
-				return_string += return_string_base.Substring(string_iterator * 8, 8) + "\n";
-				string_iterator--;
-			}
-			return " " + String.Join(" ", return_string.ToCharArray());
-		} // end static DebugBitmap
+			return returnString;
+		} // end override ToString
 		
-		// fills
+		// fills //
 		
 		public static ulong Fill(ulong bitmap, string direction){
 			int compassRoseIndex = Array.IndexOf(compass_rose_index, direction);
@@ -202,7 +193,7 @@ namespace ZBC {
 				return 0x0; 
 			}
 			
-			int direction_shift = compass_rose[compassRoseIndex];
+			/* int direction_shift = compass_rose[compassRoseIndex];
 			Console.WriteLine(direction_shift);
 			Console.WriteLine(DebugBitmap(bitmap));
 			bitmap |= (bitmap >> direction_shift * 1);
@@ -210,7 +201,7 @@ namespace ZBC {
 			bitmap |= (bitmap >> direction_shift * 2);
 			Console.WriteLine(DebugBitmap(bitmap));
 			bitmap |= (bitmap >> direction_shift * 4);
-			Console.WriteLine(DebugBitmap(bitmap));
+			Console.WriteLine(DebugBitmap(bitmap)); */
 			return bitmap;
 		} // end static Fill
 		
@@ -313,17 +304,35 @@ namespace ZBC {
 			return TransformMirrorDiagonal( TransformMirrorVertical(bitmap) );
 		} // end static TransformRotate090
 		
-		// methods //
+		// board interaction //
 		
-		public void PieceCreate(int[] piece_type, ulong coordinates){
-			// piece_type[0] is either 0 or 1, indicates white or black
-			// 2 <= piece_type[1] <= 7, indicates piece class
-			if(piece_type[0] < 0 || piece_type [0] > 1){ return; }
-			else if(piece_type[1] < 2 || piece_type[1] > this.pieces.Length){ return; }
-			this.pieces[piece_type[0]] = this.pieces[piece_type[0]] | coordinates;
-			this.pieces[piece_type[1]] = this.pieces[piece_type[1]] | coordinates;
+		public void PieceCreate(int[] piece_id, ulong coordinate){
+			// piece_id[0] is either 0 or 1, indicates white or black
+			// 2 <= piece_id[1] <= 7, indicates piece class
+			if(piece_id[0] < 0 || piece_id [0] > 1){ return; }
+			else if(piece_id[1] < 2 || piece_id[1] > this.pieces.Length){ return; }
+			this.pieces[piece_id[0]] = this.pieces[piece_id[0]] | coordinate;
+			this.pieces[piece_id[1]] = this.pieces[piece_id[1]] | coordinate;
 			return;
 		} // end PieceCreate
+		
+		public void PieceCreate(string piece_color, string piece_role, string coordinate){
+			if(Array.IndexOf(piece_name, piece_color) < 0 || Array.IndexOf(piece_name, piece_role) < 0){ 
+				Console.WriteLine("Piece name or type was not valid:");
+				Console.WriteLine("color: " + piece_color + " : " + Array.IndexOf(piece_name, piece_color).ToString());
+				Console.WriteLine("role: " + piece_role + " : " + Array.IndexOf(piece_name, piece_role).ToString());
+				return; 
+			}
+			Console.WriteLine("wah");
+			this.PieceCreate(
+				new int[] {
+					Array.IndexOf(piece_name, piece_color), 
+					Array.IndexOf(piece_name, piece_role )},
+				CoordinateToUlong(coordinate)
+			);
+			return;
+		} // end PieceCreate
+		
 		
 		public void PieceRemove(ulong coordinate){
 			int pieces_iterator = 0;
@@ -334,19 +343,32 @@ namespace ZBC {
 				pieces_iterator++;
 			}
 			return;
-		} // end PieceRemove
+		} // end PieceRemove(ulong)
 		
-		public void PieceMove(ulong coordinate_start, ulong coordinate_end){
+		public void PieceRemove(string coordinate){
+			this.PieceRemove(CoordinateToUlong(coordinate));
+		} // end PieceRemove(string)
+		
+		
+		public void PieceMove(ulong[] coordinates){
 			int pieces_iterator = 0;
 			while(pieces_iterator < this.pieces.Length){
-				if( (this.pieces[pieces_iterator] & coordinate_start) != 0x0){
-					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ coordinate_start;
-					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] | coordinate_end;
+				if( (this.pieces[pieces_iterator] & coordinates[0]) != 0x0){
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] ^ coordinates[0];
+					this.pieces[pieces_iterator] = this.pieces[pieces_iterator] | coordinates[1];
 				}
 				pieces_iterator++;
 			}
 			return;
-		} // end PieceMove
+		} // end PieceMove(ulong[])
+	
+		public void PieceMove(string coordinate_start, string coordinate_end){
+			this.PieceMove(new ulong[] {
+				CoordinateToUlong(coordinate_start),
+				CoordinateToUlong(coordinate_end)
+			});
+		} // end PieceMove(string, string)
+	
 	
 		public void ClearBoard(){
 			int piece_iterator = 0;
@@ -355,6 +377,7 @@ namespace ZBC {
 				piece_iterator++;
 			}
 		} // end ClearBoard
+	
 	
 		public Bitboard Copy(){
 			Bitboard return_bitboard = new Bitboard();
@@ -367,50 +390,6 @@ namespace ZBC {
 			}
 			return return_bitboard;
 		} // end Copy()
-		
-		public override string ToString(){
-			char[] return_bitboard = UlongToString(0x0).ToCharArray();
-			
-			int piece_iterator = 2; // start at pawns
-			while(piece_iterator < this.pieces.Length){
-				
-				int color_iterator = 0;
-				while(color_iterator < 2){
-					
-					// Do one color and one piece at a time. Makes it easy to determine the piece symbol
-					char[] current_bitmap = UlongToString( this.pieces[piece_iterator] & this.pieces[color_iterator] ).ToCharArray();
-					
-					// Determine the piece symbol. piece_iterator determins the character, color_iterator determines case.
-					char current_piece_symbol = Bitboard.piece_symbol[piece_iterator];
-					if(color_iterator == 0){ 
-						current_piece_symbol = Char.ToUpper(current_piece_symbol); 
-					}
-					
-					// Replace the appropriate indices with the current character
-					int biterator = 0;
-					while(biterator < current_bitmap.Length){
-						
-						if(current_bitmap[biterator] == '1'){
-							return_bitboard[biterator] = current_piece_symbol;
-						}
-						biterator++;
-					} // end of biterator loop
-					color_iterator++;
-				} // end of color iterator loop
-				piece_iterator++;
-			} // end of piece iterator loop
-			
-			string return_string_base = String.Join("", return_bitboard); // To let us work with substring
-			string return_string = "";
-
-			int string_iterator = 7;
-			while(string_iterator >= 0){
-				
-				return_string += return_string_base.Substring(string_iterator * 8, 8) + "\n";
-				string_iterator--;
-			}
-			return " " + String.Join(" ", return_string.ToCharArray()).Replace('0', '-');
-		} // end override ToString
 		
 	} // end class Bitboard
 
