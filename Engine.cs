@@ -7,31 +7,7 @@ namespace ZBC{
 		
         public static void Main(string[] args){
 			
-			string[] menu_options = {
-				"coordinate test",
-			};
-			
-			List<Bitboard> history = new List<Bitboard>();
-			history.Add(new Bitboard());
-			string input;
-			
-			while(true){
-				// Menu loop
-				Console.WriteLine("Main Menu");
-				input = Console.ReadLine();
-				
-				if(Array.IndexOf(menu_options, input) < 0){}
-				else if(input.Equals("coordinate test")){ DebugCoordinates(); }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-			}
+			DebuggingMenu();
 			
 			
 				
@@ -85,6 +61,34 @@ namespace ZBC{
         } // end method Main
 		
 		// Debugging methods
+		
+		public static void DebuggingMenu(){
+			string[] menu_options = {
+				"coordinate test",
+			};
+			
+			List<Bitboard> history = new List<Bitboard>();
+			history.Add(new Bitboard());
+			string input;
+			
+			while(true){
+				// Menu loop
+				Console.WriteLine("Main Menu. 'exit' to quit");
+				input = Console.ReadLine();
+				
+				if(input.Equals("exit")){ break; }
+				else if(input.Equals("coordinate test")){ DebugCoordinates(); }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+				else if(input.Equals("")){  }
+			}
+		}
 		
 		public static void DebugCoordinates(){
 			while(true){
