@@ -41,6 +41,19 @@ namespace ZBC {
 			};
 		} // end constructor Bitboard
 		
+		public Bitboard(string test_config){
+			this.pieces = new ulong[]{
+				0x7844444870504844, // white
+				0x0000000000000000, // black
+				0x7844444870504844, // pawn
+				0x0000000000000000, // knight
+				0x0000000000000000, // bishop
+				0x0000000000000000, // rook
+				0x0000000000000000, // queen
+				0x0000000000000000, // king
+			};
+		} // end constructor Bitboard(string)
+		
 		// indexing //
 		
 		public static int SquareIndex(int fileIndex, int rankIndex){
@@ -282,13 +295,13 @@ namespace ZBC {
 			ulong temp;
 			const ulong k1 = 0xaa00aa00aa00aa00;
 			const ulong k2 = 0xcccc0000cccc0000;
-			const ulong k4 = 0x0f0f0f0f0f0f0f0f;
-			temp    =      (bitmap ^ (bitmap << 36) );
-			bitmap ^= k4 & (  temp ^ (bitmap >> 36) );
+			const ulong k4 = 0xf0f0f0f00f0f0f0f;
+			temp    =       bitmap ^ (bitmap << 36)  ;
+			bitmap ^= k4 & ( temp  ^ (bitmap >> 36) );
 			temp    = k2 & (bitmap ^ (bitmap << 18) );
-			bitmap ^=      (temp   ^ (temp   >> 18) );
+			bitmap ^=        temp  ^ (temp   >> 18)  ;
 			temp    = k1 & (bitmap ^ (bitmap <<  9) );
-			bitmap ^=      (temp   ^ (temp   >>  9) );
+			bitmap ^=        temp  ^ (temp   >>  9)  ;
 			return bitmap;
 		} // end static TransformMirrorAntidiagonal
 		

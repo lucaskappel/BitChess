@@ -6,48 +6,13 @@ namespace ZBC{
     public class Engine{
 		
         public static void Main(string[] args){
-			
 			DebuggingMenu();
-			
-			
-				
-				
-				/*
-				
-				
-				
-				
-				else if(input[0].Equals("debug")){
-					history.Add(history[history.Count - 1].Copy());
-					ulong temp = history[history.Count - 1].pieces[0] & history[history.Count - 1].pieces[2];
-					temp = Bitboard.FillNorth(temp);
-					history[history.Count - 1].pieces[color] |= temp;
-					history[history.Count - 1].pieces[piece] |= temp;
-				}
-				
-				
-				else if(input[0].Equals("end")){
-					break;
-				}
-				else if(input[0].Equals("fill") && Int32.TryParse(input[1], out color) && Int32.TryParse(input[2], out piece)){
-					history.Add(history[history.Count - 1].Copy());
-					ulong temp = history[history.Count - 1].pieces[color] & history[history.Count - 1].pieces[piece];
-					temp = Bitboard.Fill(temp, input[3]);
-					history[history.Count - 1].pieces[color] |= temp;
-					history[history.Count - 1].pieces[piece] |= temp;
-				}
-			}*/
-
         } // end method Main
 		
 		// Debugging methods
 		
 		public static void DebuggingMenu(){
-			string[] menu_options = {
-				"coordinate",
-				"board",
-			};
-			
+
 			string input;
 			
 			while(true){
@@ -58,8 +23,8 @@ namespace ZBC{
 				if(input.Equals("exit")){ break; }
 				else if(input.Equals("coordinate")){ DebugCoordinates(); }
 				else if(input.Equals("board")){ DebugBoard(); }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
+				else if(input.Equals("bits")){ DebugBits(); }
+				else if(input.Equals("transform")){ DebugTransforms(); }
 				else if(input.Equals("")){  }
 				else if(input.Equals("")){  }
 				else if(input.Equals("")){  }
@@ -69,13 +34,97 @@ namespace ZBC{
 			}
 		}
 		
+		public static void DebugTransforms(){
+			Bitboard playground = new Bitboard("test config");
+			Console.WriteLine(playground.ToString());
+			
+			string input;
+			while(true){
+				
+				input = Console.ReadLine();
+				if(input.Equals("exit")){ break; }
+				else if(input.Equals("mv")){
+					playground.pieces[0] = Bitboard.TransformMirrorVertical(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformMirrorVertical(playground.pieces[2]);
+				}
+				else if(input.Equals("mh")){
+					playground.pieces[0] = Bitboard.TransformMirrorHorizontal(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformMirrorHorizontal(playground.pieces[2]);
+				}
+				else if(input.Equals("md")){
+					playground.pieces[0] = Bitboard.TransformMirrorDiagonal(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformMirrorDiagonal(playground.pieces[2]);
+				}
+				else if(input.Equals("ma")){
+					playground.pieces[0] = Bitboard.TransformMirrorAntidiagonal(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformMirrorAntidiagonal(playground.pieces[2]);
+				}
+				else if(input.Equals("rl")){
+					playground.pieces[0] = Bitboard.TransformRotate090(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformRotate090(playground.pieces[2]);
+				}
+				else if(input.Equals("rr")){
+					playground.pieces[0] = Bitboard.TransformRotate270(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformRotate270(playground.pieces[2]);
+				}
+				else if(input.Equals("rs")){
+					playground.pieces[0] = Bitboard.TransformRotate180(playground.pieces[0]);
+					playground.pieces[2] = Bitboard.TransformRotate180(playground.pieces[2]);
+				}
+				Console.WriteLine(playground.ToString());
+			}
+		}
+	
 		public static void DebugBits(){
 			Console.WriteLine("Bit playground");
+			
+			string[] ops = new string[]{"&", "^", "|", "~"};
+			Bitboard playground = new Bitboard("test config");
+			Console.WriteLine(playground.ToString());
+			
 			string[] input;
 			while(true){
+				
 				input = Console.ReadLine().Split(' ');
 				if(input[0].Equals("exit")){ break; }
-				Console.WriteLine("");
+				
+				UInt64 arg2;
+				ulong arg;
+				if(input.Length > 1 && UInt64.TryParse(input[1], out arg2)){
+					arg = (ulong)arg2;
+					
+					if(input[0].Equals("&")){
+						Console.WriteLine("wah");
+						playground.pieces[0] = playground.pieces[0] & arg;
+						playground.pieces[2] = playground.pieces[2] & arg;
+						Console.WriteLine(playground.ToString());
+					}
+					else if(input[0].Equals("^")){
+						playground.pieces[0] = playground.pieces[0] ^ arg;
+						playground.pieces[2] = playground.pieces[2] ^ arg;
+						Console.WriteLine(playground.ToString());
+					}
+					else if(input[0].Equals("|")){
+						playground.pieces[0] = playground.pieces[0] | arg;
+						playground.pieces[2] = playground.pieces[2] | arg;
+						Console.WriteLine(playground.ToString());
+					}
+					else if(input[0].Equals(">>")){
+						playground.pieces[0] = playground.pieces[0] >> (int)arg;
+						playground.pieces[2] = playground.pieces[2] >> (int)arg;
+						Console.WriteLine(playground.ToString());
+					}
+					else if(input[0].Equals("<<")){
+						playground.pieces[0] = playground.pieces[0] << (int)arg;
+						playground.pieces[2] = playground.pieces[2] << (int)arg;
+						Console.WriteLine(playground.ToString());
+					}
+				}
+				else if(input[0].Equals("~")){
+					playground.pieces[0] = ~playground.pieces[0];
+					playground.pieces[2] = ~playground.pieces[2];
+					Console.WriteLine(playground.ToString());
+				}
 			}
 		} // end DebugBits
 		
