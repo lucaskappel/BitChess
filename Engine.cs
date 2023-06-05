@@ -7,9 +7,7 @@ namespace ZBC{
 		
         public static void Main(string[] args){
 			DebuggingMenu();
-        } // end method Main
-		
-		// Debugging methods //
+        } // end Main
 		
 		public static void DebuggingMenu(){
 			string input;
