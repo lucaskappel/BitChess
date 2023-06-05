@@ -189,7 +189,24 @@ namespace ZBC{
 						}
 					}
 				}
-				
+				else if(input[0].Equals("span")){
+					if(input.Length != 4){ history.RemoveAt(history.Count - 1); }
+					else{
+						int index1 = Array.IndexOf(Bitboard.piece_name, input[1]);
+						int index2 = Array.IndexOf(Bitboard.piece_name, input[2]);
+						if(index1 < 0 || index2 < 0){ Console.WriteLine("Invalid piece at fill"); }
+						else if(Array.IndexOf(Bitboard.compass_rose_index, input[3]) < 0) { Console.WriteLine("Invalid location at fill"); }
+						else{
+						
+							ulong working_set = history[history.Count-1].pieces[index1] & history[history.Count-1].pieces[index2];
+							
+							int span_direction = Bitboard.compass_rose[Array.IndexOf(Bitboard.compass_rose_index, input[3])];
+							
+							history[history.Count-1].pieces[index1] = Bitboard.DumbSpan(working_set, span_direction);
+							history[history.Count-1].pieces[index2] = history[history.Count-1].pieces[index1];
+						}
+					}
+				}
 			} // end while loop
 			
 		} // end DebugBoard

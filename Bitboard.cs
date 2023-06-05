@@ -232,6 +232,91 @@ namespace ZBC {
 			return returnString;
 		} // end override ToString
 		
+		// spans //
+		
+		public static ulong DumbSpan(ulong bitmap, int direction){
+			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
+			if(compassRoseIndex < 0){ 
+				Console.WriteLine("compass rose direction was invalid: " + direction);
+				return 0x0; 
+			}
+			else if(compassRoseIndex == 0){
+				return Span_N(bitmap);
+			}
+			else if(compassRoseIndex == 1){
+				return Span_NE(bitmap);
+			}
+			else if(compassRoseIndex == 2){
+				return Span_E(bitmap);
+			}
+			else if(compassRoseIndex == 3){
+				return Span_SE(bitmap);
+			}
+			else if(compassRoseIndex == 4){
+				return Span_S(bitmap);
+			}
+			else if(compassRoseIndex == 5){
+				return Span_SW(bitmap);
+			}
+			else if(compassRoseIndex == 6){
+				return Span_W(bitmap);
+			}
+			else if(compassRoseIndex == 7){
+				return Span_NW(bitmap);
+			}
+			return bitmap;
+		}//DumbSpan
+		
+		public static ulong Span_N(ulong bitmap){
+			ulong span = bitmap << 8;
+			span |= (span | bitmap) << 16;
+			span |= (span | bitmap) << 32;
+			return span;
+		}//Span_N
+		
+		public static ulong Span_NE(ulong bitmap){
+			ulong span = (bitmap <<  9) & TransformRotate270(TransformRotate090(bitmap) <<  7);
+			span |= ((span | bitmap) << 18) & TransformRotate270(TransformRotate090(bitmap | span) <<  14);
+			span |= ((span | bitmap) << 36) & TransformRotate270(TransformRotate090(bitmap | span) <<  28);
+			return span;
+		}//Span_NE
+		
+		public static ulong Span_E(ulong bitmap){
+			return TransformRotate270(Span_N(TransformRotate090(bitmap)));
+		}//Span_E
+		
+		public static ulong Span_SE(ulong bitmap){
+			ulong span = (bitmap >>  7) & TransformRotate090(TransformRotate270(bitmap) >>  9);
+			span |= ((span | bitmap) >> 14) & TransformRotate090(TransformRotate270(bitmap | span) >> 18);
+			span |= ((span | bitmap) >> 28) & TransformRotate090(TransformRotate270(bitmap | span) >> 36);
+			return span;
+		}//Span_SE
+		
+		public static ulong Span_S(ulong bitmap){
+			ulong span = bitmap >> 8;
+			span |= (span | bitmap) >> 16;
+			span |= (span | bitmap) >> 32;
+			return span;
+		}//Span_S
+		
+		public static ulong Span_SW(ulong bitmap){
+			ulong span = (bitmap >>  9) & TransformRotate270(TransformRotate090(bitmap) >>  7);
+			span |= ((span | bitmap) >> 18) & TransformRotate270(TransformRotate090(span | bitmap) >> 14);
+			span |= ((span | bitmap) >> 36) & TransformRotate270(TransformRotate090(span | bitmap) >> 28);
+			return span;
+		}//Span_SW
+		
+		public static ulong Span_W(ulong bitmap){
+			return TransformRotate270(Span_S(TransformRotate090(bitmap)));
+		}//Span_W
+		
+		public static ulong Span_NW(ulong bitmap){
+			ulong span = (bitmap <<  7) & TransformRotate090(TransformRotate270(bitmap) <<  9);
+			span |= ((span | bitmap) << 14) & TransformRotate090(TransformRotate270((span | bitmap)) << 18);
+			span |= ((span | bitmap) << 28) & TransformRotate090(TransformRotate270((span | bitmap)) << 36);
+			return span;
+		}//Span_NW
+		
 		// fills //
 		
 		public static ulong DumbFill(ulong bitmap, int direction){
