@@ -325,17 +325,26 @@ namespace ZBC {
 			return bitmap;
 		} // end static fill_SE
 	
+		public static ulong Fill_NE_test(ulong bitmap){
+			// rotate by 45 deg then north fill, then rotate back.
+			// I don't think this is how this works...
+			bitmap = TransformRotate045(bitmap);
+			bitmap = Fill_N(bitmap);
+			bitmap = TransformRotate315(bitmap);
+			return bitmap;
+		}
+		
 		// blocks //
 	
 		public static ulong DumbBlock(ulong bitmap, int direction){
+			ulong span = 0x0;
+			
 			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
 			if(compassRoseIndex < 0){ 
 				Console.WriteLine("compass rose direction was invalid: " + direction);
-				return 0x0; 
+				return span; 
 			}
-			
-			// not a great way to do this but it will work for now
-			if(compassRoseIndex == 0){
+			else if(compassRoseIndex == 0){
 				return Blocker_N(bitmap);
 			}
 			else if(compassRoseIndex == 1){
@@ -363,17 +372,13 @@ namespace ZBC {
 		} // end static DumbFill
 	
 		public static ulong Blocker_N(ulong bitmap){
-			ulong backfill = bitmap << 8;
-			backfill |= (bitmap | backfill) << 16;
-			backfill |= (bitmap | backfill) << 32;
-			return bitmap & (~backfill);
+			ulong span = Fill_N(bitmap << 8);
+			return bitmap & (~span);
 		} // end static Blocker_N
 		
 		public static ulong Blocker_S(ulong bitmap){
-			ulong backfill = bitmap >> 8;
-			backfill |= (bitmap | backfill) >> 16;
-			backfill |= (bitmap | backfill) >> 32;
-			return bitmap & (~backfill);
+			ulong span = Fill_S(bitmap >> 8);
+			return bitmap & (~span);
 		} // end static Blocker_S
 		
 		public static ulong Blocker_E(ulong bitmap){
@@ -391,31 +396,23 @@ namespace ZBC {
 		} // end static Blocker_W
 		
 		public static ulong Blocker_NE(ulong bitmap){
-			ulong backfill = (bitmap <<  9) & TransformRotate270(TransformRotate090(bitmap) <<  7);
-			backfill |= ((bitmap | backfill) << 18) & TransformRotate270(TransformRotate090(bitmap | backfill) << 14);
-			backfill |= ((bitmap | backfill) << 36) & TransformRotate270(TransformRotate090(bitmap | backfill) << 28);
-			return bitmap & (~backfill);
+			ulong span = Fill_NE(bitmap <<  9);
+			return bitmap & (~span);
 		} // end static Blocker_NE
 		
 		public static ulong Blocker_NW(ulong bitmap){
-			ulong backfill = (bitmap <<  7) & TransformRotate090(TransformRotate270(bitmap) <<  9);
-			backfill |= ((bitmap | backfill) << 14) & TransformRotate090(TransformRotate270(bitmap | backfill) << 18);
-			backfill |= ((bitmap | backfill) << 28) & TransformRotate090(TransformRotate270(bitmap | backfill) << 36);
-			return bitmap & (~backfill);
+			ulong span = Fill_NW(bitmap <<  7);
+			return bitmap & (~span);
 		} // end static Blocker_NW
 		
 		public static ulong Blocker_SE(ulong bitmap){
-			ulong backfill = (bitmap >>  7) & TransformRotate090(TransformRotate270(bitmap) >>  9);
-			backfill |= ((bitmap | backfill) >> 14) & TransformRotate090(TransformRotate270(bitmap | backfill) >> 18);
-			backfill |= ((bitmap | backfill) >> 28) & TransformRotate090(TransformRotate270(bitmap | backfill) >> 36);
-			return bitmap & (~backfill);
+			ulong span = Fill_SE(bitmap >>  7);
+			return bitmap & (~span);
 		} // end static Blocker_SE
 		
 		public static ulong Blocker_SW(ulong bitmap){
-			ulong backfill = (bitmap >>  9) & TransformRotate270(TransformRotate090(bitmap) >>  7);
-			backfill |= ((bitmap | backfill) >> 18) & TransformRotate270(TransformRotate090(bitmap | backfill) >> 14);
-			backfill |= ((bitmap | backfill) >> 36) & TransformRotate270(TransformRotate090(bitmap | backfill) >> 28);
-			return bitmap & (~backfill);
+			ulong span = Fill_SW(bitmap >>  9);
+			return bitmap & (~span);
 		} // end static Blocker_SW
 		
 		// transforms //
@@ -495,6 +492,28 @@ namespace ZBC {
 		public static ulong TransformRotate090(ulong bitmap){
 			return TransformMirrorDiagonal( TransformMirrorVertical(bitmap) );
 		} // end static TransformRotate090
+		
+		public static ulong TransformRotate315(ulong bitmap){
+			ulong k1 = 0xaaaaaaaaaaaaaaaa;
+			ulong k2 = 0xcccccccccccccccc;
+			ulong k4 = 0xf0f0f0f0f0f0f0f0;
+			
+			bitmap ^= k1 & (bitmap ^ BitRotateRight(bitmap,  8));
+			bitmap ^= k2 & (bitmap ^ BitRotateRight(bitmap, 16));
+			bitmap ^= k4 & (bitmap ^ BitRotateRight(bitmap, 32));
+			return bitmap;
+		} // end TransformRotate045
+		
+		public static ulong TransformRotate045(ulong bitmap){
+			ulong k1 = 0x5555555555555555;
+			ulong k2 = 0x3333333333333333;
+			ulong k4 = 0x0f0f0f0f0f0f0f0f;
+			
+			bitmap ^= k1 & (bitmap ^ BitRotateRight(bitmap,  8));
+			bitmap ^= k2 & (bitmap ^ BitRotateRight(bitmap, 16));
+			bitmap ^= k4 & (bitmap ^ BitRotateRight(bitmap, 32));
+			return bitmap;
+		} // end TransformRotate315
 		
 		// board interaction //
 		
@@ -602,6 +621,14 @@ namespace ZBC {
 
 			return ulongRand % uRange;
 		} // end static RandomUlong
+		
+		private static ulong BitRotateLeft(ulong bitmap, int shift){
+			return (bitmap << shift) | (bitmap >> 64 - shift);
+		} // end BitRotateLeft
+		
+		private static ulong BitRotateRight(ulong bitmap, int shift){
+			return (bitmap >> shift) | (bitmap << 64 - shift);
+		} // end BitRotateRight
 		
 	} // end class Bitboard
 
