@@ -82,7 +82,7 @@ namespace ZBC {
 			}
 			
 			else if(configuration.Equals("random")){
-				this.pieces[0] = RandomUlong() & RandomUlong();
+				this.pieces[0] = RandomUlong() & RandomUlong(); // & is to help to reduce piece count, only 1 makes too many
 				this.pieces[2] = this.pieces[0];
 			}
 			
@@ -418,7 +418,6 @@ namespace ZBC {
 			return bitmap & (~backfill);
 		} // end static Blocker_SW
 		
-		
 		// transforms //
 		
 		public static ulong TransformMirrorVertical(ulong bitmap){
@@ -570,6 +569,7 @@ namespace ZBC {
 			}
 		} // end ClearBoard
 	
+		// util //
 	
 		public Bitboard Copy(){
 			Bitboard return_bitboard = new Bitboard();
@@ -581,7 +581,7 @@ namespace ZBC {
 				piece_iterator++;
 			}
 			return return_bitboard;
-		} // end Copy()
+		} // end Copy
 		
 		private static ulong RandomUlong(){
 			//Working with ulong so that modulo works correctly with values > long.MaxValue
@@ -601,7 +601,7 @@ namespace ZBC {
 			} while (ulongRand > ulong.MaxValue - ((ulong.MaxValue % uRange) + 1) % uRange);
 
 			return ulongRand % uRange;
-		}
+		} // end static RandomUlong
 		
 	} // end class Bitboard
 
