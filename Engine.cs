@@ -9,10 +9,9 @@ namespace ZBC{
 			DebuggingMenu();
         } // end method Main
 		
-		// Debugging methods
+		// Debugging methods //
 		
 		public static void DebuggingMenu(){
-
 			string input;
 			while(true){
 				// Menu loop
@@ -25,7 +24,7 @@ namespace ZBC{
 				else if(input.Equals("bits")){ DebugBits(); }
 				else if(input.Equals("transform")){ DebugTransforms(); }
 			}
-		}
+		} // end DebuggingMenu
 		
 		public static void DebugTransforms(){
 			Bitboard playground = new Bitboard("r");
@@ -66,7 +65,7 @@ namespace ZBC{
 				}
 				Console.WriteLine(playground.ToString());
 			}
-		}
+		} // end DebugTransforms
 	
 		public static void DebugBits(){
 			Console.WriteLine("Bit playground");
@@ -142,7 +141,6 @@ namespace ZBC{
 				}
 				else if(input[0].Equals("create")){
 					history[history.Count - 1].PieceCreate(input[1], input[2], input[3]);
-					Console.WriteLine((0x8100000000000081).ToString());
 				}
 				else if(input[0].Equals("remove")){
 					history[history.Count - 1].PieceRemove(input[1]);
@@ -193,6 +191,7 @@ namespace ZBC{
 						}
 					}
 				}
+				
 			} // end while loop
 			
 		} // end DebugBoard
