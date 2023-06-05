@@ -232,7 +232,13 @@ namespace ZBC {
 			return returnString;
 		} // end override ToString
 		
-		// spans //
+		/* spans 
+		The span of any individual piece in a particular direction is equal to its fill in that direction ^ itself.
+		This can be calculated most efficiently for single pieces by doing exactly that.
+		However if multiple pieces are involved, the span may overlap some of the pieces, so you can't do ^ themselves, as you will get holes.
+		As such, a slightly different method which intentionally "forgets" the | of the initial shift and the pieces is necessary.
+		This is important for calculating the first blockers for sliding attacks.
+		*/
 		
 		public static ulong DumbSpan(ulong bitmap, int direction){
 			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
@@ -317,7 +323,10 @@ namespace ZBC {
 			return span;
 		}//Span_NW
 		
-		// fills //
+		/* fills
+		Fills are used to calculate sliding attacks (rook, queen, bishop)
+		They are/can also be used to calculate spans for calculating blockers.
+		*/
 		
 		public static ulong DumbFill(ulong bitmap, int direction){
 			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
@@ -419,8 +428,10 @@ namespace ZBC {
 			return bitmap;
 		}
 		
-		// blocks //
-	
+		/* blocks
+		Blocks calculate the first blocker to a sliding attack in a particualr direction.
+		This is important for calculating legal moves as well as check/mate attacks.
+		*/
 		public static ulong DumbBlock(ulong bitmap, int direction){
 			ulong span = 0x0;
 			
