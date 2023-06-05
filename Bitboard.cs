@@ -7,13 +7,23 @@ namespace ZBC {
 		// vars //
 		
 		public static string[] piece_name = {"white", "black", "pawn", "knight", "bishop", "rook", "queen", "king"};
-		private static char[] piece_symbol = {'w', 'b', 'p', 'n', 'b', 'r', 'q', 'k'};
+		public static char[] piece_symbol = {'w', 'b', 'p', 'n', 'b', 'r', 'q', 'k'};
 		
 		public static char[] file_index = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 		public static char[] rank_index = {'1', '2', '3', '4', '5', '6', '7', '8'};
 		
-		private static string[] compass_rose_index = {"n", "ne", "e", "se", "s", "sw", "w", "nw"};
-		private static int[] compass_rose = {8, 9, 1, -7, -8, -9, -1, 7};
+		public static ulong file_a = 0x0101010101010101;
+		public static ulong file_h = 0x8080808080808080;
+		public static ulong rank_1 = 0x00000000000000FF;
+		public static ulong rank_8 = 0xFF00000000000000;
+		public static ulong diagonal_a1h8 = 0x8040201008040201;
+		public static ulong diagonal_h1a8 = 0x0102040810204080;
+		public static ulong squares_light = 0x55AA55AA55AA55AA;
+		public static ulong squares_dark  = 0x0AA55AA55AA55AA5;
+		
+		public static string[] compass_rose_index = {"n", "ne", "e", "se", "s", "sw", "w", "nw"};
+		public static int[] compass_rose = {8, 9, 1, -7, -8, -9, -1, 7};
+		
 		/*
 			   nw    n   ne
 				+7  +8  +9
@@ -32,7 +42,7 @@ namespace ZBC {
 			this.pieces = new ulong[] { // little-endian rank-file mapping
 				0x000000000000ffff, // white
 				0xffff000000000000, // black
-				0x00FF00000000FF00, // pawn
+				0x00ff00000000ff00, // pawn
 				0x4200000000000042, // knight
 				0x2400000000000024, // bishop
 				0x8100000000000081, // rook
@@ -41,17 +51,42 @@ namespace ZBC {
 			};
 		} // end constructor Bitboard
 		
-		public Bitboard(string test_config){
-			this.pieces = new ulong[]{
-				0x7844444870504844, // white
-				0x0000000000000000, // black
-				0x7844444870504844, // pawn
-				0x0000000000000000, // knight
-				0x0000000000000000, // bishop
-				0x0000000000000000, // rook
-				0x0000000000000000, // queen
-				0x0000000000000000, // king
-			};
+		public Bitboard(string configuration){
+			
+			this.pieces = new ulong[] { // little-endian rank-file mapping
+					0x0000000000000000, // white
+					0x0000000000000000, // black
+					0x0000000000000000, // pawn
+					0x0000000000000000, // knight
+					0x0000000000000000, // bishop
+					0x0000000000000000, // rook
+					0x0000000000000000, // queen
+					0x0000000000000000, // king
+				}; 
+			
+			if(configuration.Equals("r")){
+				this.pieces[0] = 0x7844444870504844;
+				this.pieces[2] = this.pieces[0];
+			}
+			
+			else if(configuration.Equals("centerknights")){
+				this.pieces[0] = 0x0000001008000000;
+				this.pieces[1] = 0x0000000810000000;
+				this.pieces[3] = this.pieces[0] & this.pieces[1];
+			}
+			
+			else if(configuration.Equals("pawns")){
+				this.pieces[0] = 0x000000000000ff00;
+				this.pieces[1] = 0x00ff000000000000;
+				this.pieces[2] = this.pieces[0] & this.pieces[1];
+			}
+			
+			else if(configuration.Equals("random")){
+				this.pieces[0] = RandomUlong() & RandomUlong();
+				this.pieces[2] = this.pieces[0];
+			}
+			
+			return;
 		} // end constructor Bitboard(string)
 		
 		// indexing //
@@ -199,45 +234,190 @@ namespace ZBC {
 		
 		// fills //
 		
-		public static ulong Fill(ulong bitmap, string direction){
-			int compassRoseIndex = Array.IndexOf(compass_rose_index, direction);
+		public static ulong DumbFill(ulong bitmap, int direction){
+			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
 			if(compassRoseIndex < 0){ 
 				Console.WriteLine("compass rose direction was invalid: " + direction);
 				return 0x0; 
 			}
 			
-			/* int direction_shift = compass_rose[compassRoseIndex];
-			Console.WriteLine(direction_shift);
-			Console.WriteLine(DebugBitmap(bitmap));
-			bitmap |= (bitmap >> direction_shift * 1);
-			Console.WriteLine(DebugBitmap(bitmap));
-			bitmap |= (bitmap >> direction_shift * 2);
-			Console.WriteLine(DebugBitmap(bitmap));
-			bitmap |= (bitmap >> direction_shift * 4);
-			Console.WriteLine(DebugBitmap(bitmap)); */
+			// not a great way to do this but it will work for now
+			if(compassRoseIndex == 0){
+				return Fill_N(bitmap);
+			}
+			else if(compassRoseIndex == 1){
+				return Fill_NE(bitmap);
+			}
+			else if(compassRoseIndex == 2){
+				return Fill_E(bitmap);
+			}
+			else if(compassRoseIndex == 3){
+				return Fill_SE(bitmap);
+			}
+			else if(compassRoseIndex == 4){
+				return Fill_S(bitmap);
+			}
+			else if(compassRoseIndex == 5){
+				return Fill_SW(bitmap);
+			}
+			else if(compassRoseIndex == 6){
+				return Fill_W(bitmap);
+			}
+			else if(compassRoseIndex == 7){
+				return Fill_NW(bitmap);
+			}
 			return bitmap;
-		} // end static Fill
+		} // end static DumbFill
 		
-		public static ulong FillNorth(ulong bitmap){
+		public static ulong Fill_N(ulong bitmap){
 			bitmap |= (bitmap <<  8);
 			bitmap |= (bitmap << 16);
 			bitmap |= (bitmap << 32);
 			return bitmap;
-		} // end static FillNorth
+		} // end static Fill_N
 		
-		public static ulong FillSouth(ulong bitmap){
+		public static ulong Fill_S(ulong bitmap){
 			bitmap |= (bitmap >>  8);
 			bitmap |= (bitmap >> 16);
 			bitmap |= (bitmap >> 32);
 			return bitmap;
-		} // end static FillSouth
+		} // end static Fill_S
 		
-		public static ulong FillSouthAlt(ulong bitmap){
-			bitmap |= (bitmap <<  (-8));
-			bitmap |= (bitmap << (-16));
-			bitmap |= (bitmap << (-32));
+		public static ulong Fill_E(ulong bitmap){
+			bitmap = TransformRotate090(bitmap);
+			bitmap = Fill_N(bitmap);
+			bitmap = TransformRotate270(bitmap);
 			return bitmap;
-		} // end static FillSouth
+		} // end static Fill_E
+		
+		public static ulong Fill_W(ulong bitmap){
+			bitmap = TransformRotate270(bitmap);
+			bitmap = Fill_N(bitmap);
+			bitmap = TransformRotate090(bitmap);
+			return bitmap;
+		} // end static Fill_W
+		
+		public static ulong Fill_NE(ulong bitmap){
+			bitmap |= (bitmap <<  9) & TransformRotate270(TransformRotate090(bitmap) <<  7);
+			bitmap |= (bitmap << 18) & TransformRotate270(TransformRotate090(bitmap) << 14);
+			bitmap |= (bitmap << 36) & TransformRotate270(TransformRotate090(bitmap) << 28);
+			return bitmap;
+		} // end static fill_NE
+		
+		public static ulong Fill_NW(ulong bitmap){
+			bitmap |= (bitmap <<  7) & TransformRotate090(TransformRotate270(bitmap) <<  9);
+			bitmap |= (bitmap << 14) & TransformRotate090(TransformRotate270(bitmap) << 18);
+			bitmap |= (bitmap << 28) & TransformRotate090(TransformRotate270(bitmap) << 36);
+			return bitmap;
+		} // end static fill_NW
+		
+		public static ulong Fill_SE(ulong bitmap){
+			bitmap |= (bitmap >>  7) & TransformRotate090(TransformRotate270(bitmap) >>  9);
+			bitmap |= (bitmap >> 14) & TransformRotate090(TransformRotate270(bitmap) >> 18);
+			bitmap |= (bitmap >> 28) & TransformRotate090(TransformRotate270(bitmap) >> 36);
+			return bitmap;
+		} // end static fill_SW
+		
+		public static ulong Fill_SW(ulong bitmap){
+			bitmap |= (bitmap >>  9) & TransformRotate270(TransformRotate090(bitmap) >>  7);
+			bitmap |= (bitmap >> 18) & TransformRotate270(TransformRotate090(bitmap) >> 14);
+			bitmap |= (bitmap >> 36) & TransformRotate270(TransformRotate090(bitmap) >> 28);
+			return bitmap;
+		} // end static fill_SE
+	
+		// blocks //
+	
+		public static ulong DumbBlock(ulong bitmap, int direction){
+			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
+			if(compassRoseIndex < 0){ 
+				Console.WriteLine("compass rose direction was invalid: " + direction);
+				return 0x0; 
+			}
+			
+			// not a great way to do this but it will work for now
+			if(compassRoseIndex == 0){
+				return Blocker_N(bitmap);
+			}
+			else if(compassRoseIndex == 1){
+				return Blocker_NE(bitmap);
+			}
+			else if(compassRoseIndex == 2){
+				return Blocker_E(bitmap);
+			}
+			else if(compassRoseIndex == 3){
+				return Blocker_SE(bitmap);
+			}
+			else if(compassRoseIndex == 4){
+				return Blocker_S(bitmap);
+			}
+			else if(compassRoseIndex == 5){
+				return Blocker_SW(bitmap);
+			}
+			else if(compassRoseIndex == 6){
+				return Blocker_W(bitmap);
+			}
+			else if(compassRoseIndex == 7){
+				return Blocker_NW(bitmap);
+			}
+			return bitmap;
+		} // end static DumbFill
+	
+		public static ulong Blocker_N(ulong bitmap){
+			ulong backfill = bitmap << 8;
+			backfill |= (bitmap | backfill) << 16;
+			backfill |= (bitmap | backfill) << 32;
+			return bitmap & (~backfill);
+		} // end static Blocker_N
+		
+		public static ulong Blocker_S(ulong bitmap){
+			ulong backfill = bitmap >> 8;
+			backfill |= (bitmap | backfill) >> 16;
+			backfill |= (bitmap | backfill) >> 32;
+			return bitmap & (~backfill);
+		} // end static Blocker_S
+		
+		public static ulong Blocker_E(ulong bitmap){
+			bitmap = TransformRotate090(bitmap);
+			ulong blockers = Blocker_N(bitmap);
+			blockers = TransformRotate270(blockers);
+			return blockers;
+		} // end static Blocker_E
+		
+		public static ulong Blocker_W(ulong bitmap){
+			bitmap = TransformRotate270(bitmap);
+			ulong blockers = Blocker_N(bitmap);
+			blockers = TransformRotate090(blockers);
+			return blockers;
+		} // end static Blocker_W
+		
+		public static ulong Blocker_NE(ulong bitmap){
+			ulong backfill = (bitmap <<  9) & TransformRotate270(TransformRotate090(bitmap) <<  7);
+			backfill |= ((bitmap | backfill) << 18) & TransformRotate270(TransformRotate090(bitmap | backfill) << 14);
+			backfill |= ((bitmap | backfill) << 36) & TransformRotate270(TransformRotate090(bitmap | backfill) << 28);
+			return bitmap & (~backfill);
+		} // end static Blocker_NE
+		
+		public static ulong Blocker_NW(ulong bitmap){
+			ulong backfill = (bitmap <<  7) & TransformRotate090(TransformRotate270(bitmap) <<  9);
+			backfill |= ((bitmap | backfill) << 14) & TransformRotate090(TransformRotate270(bitmap | backfill) << 18);
+			backfill |= ((bitmap | backfill) << 28) & TransformRotate090(TransformRotate270(bitmap | backfill) << 36);
+			return bitmap & (~backfill);
+		} // end static Blocker_NW
+		
+		public static ulong Blocker_SE(ulong bitmap){
+			ulong backfill = (bitmap >>  7) & TransformRotate090(TransformRotate270(bitmap) >>  9);
+			backfill |= ((bitmap | backfill) >> 14) & TransformRotate090(TransformRotate270(bitmap | backfill) >> 18);
+			backfill |= ((bitmap | backfill) >> 28) & TransformRotate090(TransformRotate270(bitmap | backfill) >> 36);
+			return bitmap & (~backfill);
+		} // end static Blocker_SE
+		
+		public static ulong Blocker_SW(ulong bitmap){
+			ulong backfill = (bitmap >>  9) & TransformRotate270(TransformRotate090(bitmap) >>  7);
+			backfill |= ((bitmap | backfill) >> 18) & TransformRotate270(TransformRotate090(bitmap | backfill) >> 14);
+			backfill |= ((bitmap | backfill) >> 36) & TransformRotate270(TransformRotate090(bitmap | backfill) >> 28);
+			return bitmap & (~backfill);
+		} // end static Blocker_SW
+		
 		
 		// transforms //
 		
@@ -336,7 +516,6 @@ namespace ZBC {
 				Console.WriteLine("role: " + piece_role + " : " + Array.IndexOf(piece_name, piece_role).ToString());
 				return; 
 			}
-			Console.WriteLine("wah");
 			this.PieceCreate(
 				new int[] {
 					Array.IndexOf(piece_name, piece_color), 
@@ -403,6 +582,26 @@ namespace ZBC {
 			}
 			return return_bitboard;
 		} // end Copy()
+		
+		private static ulong RandomUlong(){
+			//Working with ulong so that modulo works correctly with values > long.MaxValue
+			ulong uRange = 0xffffffffffffffff;
+			Random random = new Random(Guid.NewGuid().GetHashCode());
+
+			//Prevent a modolo bias; see https://stackoverflow.com/a/10984975/238419
+			//for more information.
+			//In the worst case, the expected number of calls is 2 (though usually it's
+			//much closer to 1) so this loop doesn't really hurt performance at all.
+			ulong ulongRand;
+			do
+			{
+				byte[] buf = new byte[8];
+				random.NextBytes(buf);
+				ulongRand = (ulong)BitConverter.ToInt64(buf, 0);
+			} while (ulongRand > ulong.MaxValue - ((ulong.MaxValue % uRange) + 1) % uRange);
+
+			return ulongRand % uRange;
+		}
 		
 	} // end class Bitboard
 

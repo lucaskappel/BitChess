@@ -14,7 +14,6 @@ namespace ZBC{
 		public static void DebuggingMenu(){
 
 			string input;
-			
 			while(true){
 				// Menu loop
 				Console.WriteLine("Main Menu");
@@ -25,17 +24,11 @@ namespace ZBC{
 				else if(input.Equals("board")){ DebugBoard(); }
 				else if(input.Equals("bits")){ DebugBits(); }
 				else if(input.Equals("transform")){ DebugTransforms(); }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
-				else if(input.Equals("")){  }
 			}
 		}
 		
 		public static void DebugTransforms(){
-			Bitboard playground = new Bitboard("test config");
+			Bitboard playground = new Bitboard("r");
 			Console.WriteLine(playground.ToString());
 			
 			string input;
@@ -79,7 +72,7 @@ namespace ZBC{
 			Console.WriteLine("Bit playground");
 			
 			string[] ops = new string[]{"&", "^", "|", "~"};
-			Bitboard playground = new Bitboard("test config");
+			Bitboard playground = new Bitboard("r");
 			Console.WriteLine(playground.ToString());
 			
 			string[] input;
@@ -160,7 +153,48 @@ namespace ZBC{
 				else if(input[0].Equals("clear")){
 					history[history.Count - 1].ClearBoard();
 				}
-			}
+				else if(input[0].Equals("reset")){
+					if(input.Length > 1){ history[history.Count-1] = new Bitboard(input[1]); }
+					else{ history[history.Count-1] = new Bitboard(); }
+				}
+				else if(input[0].Equals("fill")){
+					if(input.Length != 4){ history.RemoveAt(history.Count - 1); }
+					else{
+						int index1 = Array.IndexOf(Bitboard.piece_name, input[1]);
+						int index2 = Array.IndexOf(Bitboard.piece_name, input[2]);
+						if(index1 < 0 || index2 < 0){ Console.WriteLine("Invalid piece at fill"); }
+						else if(Array.IndexOf(Bitboard.compass_rose_index, input[3]) < 0) { Console.WriteLine("Invalid location at fill"); }
+						else{
+						
+							ulong working_set = history[history.Count-1].pieces[index1] & history[history.Count-1].pieces[index2];
+							
+							int fill_direction = Bitboard.compass_rose[Array.IndexOf(Bitboard.compass_rose_index, input[3])];
+							
+							history[history.Count-1].pieces[index1] |= Bitboard.DumbFill(working_set, fill_direction);
+							history[history.Count-1].pieces[index2] = history[history.Count-1].pieces[index1];
+						}
+					}
+				}
+				else if(input[0].Equals("block")){
+					if(input.Length != 4){ history.RemoveAt(history.Count - 1); }
+					else{
+						int index1 = Array.IndexOf(Bitboard.piece_name, input[1]);
+						int index2 = Array.IndexOf(Bitboard.piece_name, input[2]);
+						if(index1 < 0 || index2 < 0){ Console.WriteLine("Invalid piece at fill"); }
+						else if(Array.IndexOf(Bitboard.compass_rose_index, input[3]) < 0) { Console.WriteLine("Invalid location at fill"); }
+						else{
+						
+							ulong working_set = history[history.Count-1].pieces[index1] & history[history.Count-1].pieces[index2];
+							
+							int block_direction = Bitboard.compass_rose[Array.IndexOf(Bitboard.compass_rose_index, input[3])];
+							
+							history[history.Count-1].pieces[index1] = Bitboard.DumbBlock(working_set, block_direction);
+							history[history.Count-1].pieces[index2] = history[history.Count-1].pieces[index1];
+						}
+					}
+				}
+			} // end while loop
+			
 		} // end DebugBoard
 		
 		public static void DebugCoordinates(){
