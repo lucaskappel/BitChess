@@ -21,6 +21,8 @@ namespace ZBC {
 		public static ulong squares_light = 0x55AA55AA55AA55AA;
 		public static ulong squares_dark  = 0x0AA55AA55AA55AA5;
 		
+		public static int[] knight_deltas = {15, 17, 10, -6, -15, -17, -10, 6};
+		
 		public static string[] compass_rose_index = {"n", "ne", "e", "se", "s", "sw", "w", "nw"};
 		public static int[] compass_rose = {8, 9, 1, -7, -8, -9, -1, 7};
 		
@@ -160,6 +162,10 @@ namespace ZBC {
 			return squareIndex & 7;
 		} // end static FileIndex
 		
+		public static int FileIndex(ulong bitmap){
+			return (int)(bitmap & 7);
+		}//FileIndex(bitmap)
+		
 		public static int RankIndex(int squareIndex){
 			/* Translates the square index into the rank index.
 			RankIndex = squareIndex div 8 = squareIndex >> 3
@@ -249,15 +255,182 @@ namespace ZBC {
 		}
 		
 		/* Move Generation
-		Here is where the magic happens.
+		Piecewise move generation. Each type of move gets its own method.
+		"bitmap" is the coordinate of the piece attempting to be moved.
 		*/
 		
-		public void MoveGeneratePawn(){}
-		public void MoveGenerateKnight(){}
-		public void MoveGenerateBishop(){}
-		public void MoveGenerateRook(){}
-		public void MoveGenerateQueen(){}
-		public void MoveGenerateKing(){}
+		public ulong MoveGenerate(ulong bitmap, ulong previous_pawn = 0x0){
+			for(int i=2; i<this.pieces.Length; i++){
+				if( (bitmap & this.pieces[i]) != 0x0){
+					if(i==2){
+						return MoveGeneratePawn(bitmap) | MoveGeneratePawnDouble(bitmap) | MoveGeneratePawnAttack(bitmap) | MoveGeneratePawnEnPassante(bitmap, previous_pawn);
+					}
+					else if(i==3){
+						return MoveGenerateKnight(bitmap);
+					}
+					else if(i==4){
+						return MoveGenerateBishop(bitmap);
+					}
+					else if(i==5){
+						return MoveGenerateRook(bitmap);
+					}
+					else if(i==6){
+						return MoveGenerateQueen(bitmap);
+					}
+					else if(i==7){
+						return MoveGenerateKing(bitmap);
+					}
+					else{
+						Console.WriteLine("You shouldn't be able to get here, MoveGenerate else statement.");
+					}
+				}
+			}
+			return 0x0;
+		}//MoveGenerate
+		
+		public ulong MoveGeneratePawn(ulong bitmap){ // Pawns move forward 1
+			ulong legal_moves = 0x0;
+			
+			// get the square in front!
+			if( (bitmap & this.pieces[0]) != 0x0){ 
+				legal_moves = bitmap << 8; 
+			}
+			else if( (bitmap & this.pieces[1]) != 0x0){
+				legal_moves = bitmap >> 8;
+			}
+			
+			// Mask by piece occupancy
+			legal_moves &= ~(this.pieces[0] | this.pieces[1]);
+			
+			return legal_moves;
+		}//MoveGeneratePawn
+		
+		public ulong MoveGeneratePawnDouble(ulong bitmap){ // if it hasn't moved yet, pawn can also go two squares!
+			ulong legal_moves = 0x0;
+			
+			// check to see if the piece hasn't moved yet!
+			if( (bitmap & this.pieces[0] & (rank_1 << 8))!= 0x0){
+				legal_moves = bitmap << 16;
+			}
+			else if( (bitmap & this.pieces[1] & (rank_8 >> 8)) != 0x0){
+				legal_moves = bitmap >> 16;
+			}
+			legal_moves &= ~(this.pieces[0] | this.pieces[1]); // Mask by piece occupancy
+			return legal_moves;
+		}//MoveGeneratePawnDouble
+		
+		public ulong MoveGeneratePawnAttack(ulong bitmap){
+			ulong legal_moves = 0x0;
+			
+			if( (bitmap & this.pieces[0]) != 0x0){ 
+				legal_moves = (bitmap << 7) | (bitmap << 9); // The base moves
+				legal_moves &= this.pieces[1]; // Mask by black piece occupancy
+			}
+			else if( (bitmap & this.pieces[1]) != 0x0){
+				legal_moves = (bitmap >> 7) | (bitmap >> 9); // The base moves
+				legal_moves &= this.pieces[0]; // Mask by white piece occupancy
+			}
+			
+			if(FileIndex(bitmap) == 0){ legal_moves &= ~file_h; }
+			else if(FileIndex(bitmap) == 7){ legal_moves &= ~file_a; }
+			
+			return legal_moves;
+		}//MoveGeneratePawnAttack
+		
+		public ulong MoveGeneratePawnEnPassante(ulong bitmap, ulong previous_pawns){
+			
+			// First check for adjacent pawns of the opposite color.
+			ulong adjacent_pieces = (bitmap << 1) | (bitmap >> 1);
+			ulong adjacent_pawns_of_the_opposite_color = adjacent_pieces & PiecesOfOppositeColor(bitmap) & this.pieces[2];
+			
+			/*  next, check the space behind those adjacent pawns. There cannot be any pieces in that space, otherwise the pawn couldn't have gone 2.
+			then space_behind_pawns represents the spaces behind an adjacent pawn of the opposite color.
+			*/
+			ulong space_behind_pawns = 0x0;
+			if( (bitmap & pieces[0]) != 0x0){
+				space_behind_pawns = (~Occupancy()) & (adjacent_pawns_of_the_opposite_color << 8);
+			}
+			else if( (bitmap & pieces[1]) != 0x0){
+				space_behind_pawns = (~Occupancy()) & (adjacent_pawns_of_the_opposite_color >> 8);
+			}
+			
+			/*  To get the validity of EnPassante, check the previous and current move.
+			There must be a pawn behind the empty space on the previous turn, and no pawn behind the empty space on the current turn.
+			*/
+			ulong previous_turn_pawns = 0x0;
+			ulong this_turn_pawns = 0x0;
+			if( (bitmap & pieces[0]) != 0x0){
+				previous_turn_pawns = ((space_behind_pawns << 8) & previous_pawns) >> 8;
+				this_turn_pawns = ((space_behind_pawns << 8) & this.pieces[2]) >> 8;
+			}
+			else if( (bitmap & pieces[1]) != 0x0){
+				previous_turn_pawns = ((space_behind_pawns >> 8) & previous_pawns) << 8;
+				this_turn_pawns = ((space_behind_pawns >> 8) & this.pieces[2]) << 8;
+			}
+			
+			ulong en_passante = previous_turn_pawns & (~this_turn_pawns);
+			return en_passante;
+		}
+		
+		public ulong MoveGenerateKnight(ulong bitmap){
+			ulong knight_moves = 0x0;
+			for(int i=0; i<knight_deltas.Length; i++){ 
+				if(knight_deltas[i] > 0){
+					knight_moves |= bitmap << knight_deltas[i]; 
+				}
+				else if(knight_deltas[i] < 0){
+					knight_moves |= bitmap >> knight_deltas[i];
+				}
+			}
+			
+			// Mask the edges for wrapping
+			if(FileIndex(bitmap) <= 1){
+				knight_moves &= ~(file_h | (file_h >> 1));
+			}
+			else if(FileIndex(bitmap) >= 6){
+				knight_moves &= ~(file_a | (file_a << 1));
+			}
+			
+			// Mask by friendly pieces
+			knight_moves &= ~PiecesOfSameColor(bitmap);
+			
+			return knight_moves;
+		}//MoveGenerateKnight
+		
+		public ulong MoveGenerateBishop(ulong bitmap){
+			int[] bishopDirections = {9, -7, -9, 7};
+			ulong bishopMoves = 0x0;
+			for(int i=0; i<bishopDirections.Length; i++){
+				bishopMoves |= DumbSlidingAttack(bitmap, bishopDirections[i]);
+			}
+			return (~bitmap) & bishopMoves;
+		}//MoveGenerateBishop
+		
+		public ulong MoveGenerateRook(ulong bitmap){
+			int[] rookDirections = {8, 1, -8, 1};
+			ulong rookMoves = 0x0;
+			for(int i=0; i<rookDirections.Length; i++){
+				rookMoves |= DumbSlidingAttack(bitmap, rookDirections[i]);
+			}
+			return (~bitmap) & rookMoves;
+		}//MoveGenerateRook
+		
+		public ulong MoveGenerateQueen(ulong bitmap){
+			return MoveGenerateRook(bitmap) | MoveGenerateBishop(bitmap);
+		}//MoveGenerateQueen
+		
+		public ulong MoveGenerateKing(ulong bitmap){
+			ulong kingMoves = 0x0;
+			for(int i=0; i<compass_rose.Length; i++){
+				if(compass_rose[i] > 0){
+					kingMoves |= bitmap << compass_rose[i];
+				}
+				else{
+					kingMoves |= bitmap >> compass_rose[i];
+				}
+			}
+			return MoveGenerateQueen(bitmap) & kingMoves;
+		}//MoveGenerateKing
 		
 		/* Sliding Attack
 		algorithm to calculate sliding attacks. generates a ray in a direction, then makes sure it stops at the first blocker,
@@ -299,8 +472,8 @@ namespace ZBC {
 			ulong return_ray = bitmap_span ^ blocker_span;
 			
 			// Finally, we have to remove the pieces of the same color from the ray, if it is being blocked by its own piece!
-			if((bitmap & this.pieces[0]) != 0x0){ return_ray = return_ray & (~this.pieces[0]); }
-			else if((bitmap & this.pieces[1]) != 0x0){ return_ray = return_ray & (~this.pieces[1]); }
+			if( (bitmap & this.pieces[0]) != 0x0){ return_ray = return_ray & (~this.pieces[0]); }
+			else if( (bitmap & this.pieces[1]) != 0x0){ return_ray = return_ray & (~this.pieces[1]); }
 			return return_ray;
 		} //DumbSlidingAttack
 		
@@ -764,6 +937,55 @@ namespace ZBC {
 		} // end ClearBoard
 	
 		// util //
+	
+		private ulong Occupancy(){
+			return this.pieces[0] | this.pieces[1];
+		}//Occupancy
+		
+		private ulong PiecesOfSameColor(ulong bitmap){
+			for(int i=0; i<2; i++){
+				if( (this.pieces[i] & bitmap) != 0x0){
+					return this.pieces[i];
+				}
+			}
+			return 0x0;
+		}//PiecesOfSameColor
+		
+		private ulong PiecesOfOppositeColor(ulong bitmap){
+			for(int i=0; i<2; i++){
+				if( (this.pieces[i] & bitmap) == 0x0){
+					return this.pieces[i];
+				}
+			}
+			return 0x0;
+		}//PiecesOfOppositeColor
+		
+		private ulong PiecesOfSameType(ulong bitmap){
+			for(int i=2; i<this.pieces.Length; i++){
+				if( (this.pieces[i] & bitmap) != 0x0){
+					return this.pieces[i];
+				}
+			}
+			return 0x0;
+		}//PiecesOfSameType
+	
+		public int PieceTypeIndexAtCoordinate(ulong bitmap){
+			for(int i=2; i<this.pieces.Length; i++){
+				if( (this.pieces[i] & bitmap) != 0x0){
+					return i;
+				}
+			}
+			return -1;
+		}//PieceTypeAtCoordinate
+		
+		public int PieceColorIndexAtCoordinate(ulong bitmap){
+			for(int i=0; i<2; i++){
+				if( (this.pieces[i] & bitmap) != 0x0){
+					return i;
+				}
+			}
+			return -1;
+		}//PieceTypeAtCoordinate
 	
 		public Bitboard Copy(){
 			Bitboard return_bitboard = new Bitboard();

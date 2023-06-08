@@ -231,6 +231,14 @@ namespace ZBC{
 						}
 					}
 				}
+				else if(input[0].Equals("moves")){
+					history.RemoveAt(history.Count - 1);
+					if(input.Length == 2){
+						ulong Coordinate = Bitboard.CoordinateToUlong(input[1]);
+						ulong LegalMoves = history[history.Count-1].MoveGenerate(Coordinate, history[history.Count-2].pieces[2]);
+						Bitboard.DebugBits("Legal Moves for <" + input[1] + ">", LegalMoves);
+					}
+				}
 			} // end while loop
 			
 		} // end DebugBoard
