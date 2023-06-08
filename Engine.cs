@@ -126,7 +126,7 @@ namespace ZBC{
 			history.Add(new Bitboard());
 			
 			while(true){
-				Console.WriteLine(history.Count.ToString() + "\n" + history[history.Count - 1].ToString());
+				Console.WriteLine("Turn " + history.Count.ToString() + "\n" + history[history.Count - 1].ToString());
 				
 				input = Console.ReadLine().Split(' ');
 				if(input[0].Equals("exit")){ break; }
@@ -204,6 +204,30 @@ namespace ZBC{
 							
 							history[history.Count-1].pieces[index1] = Bitboard.DumbSpan(working_set, span_direction);
 							history[history.Count-1].pieces[index2] = history[history.Count-1].pieces[index1];
+						}
+					}
+				}
+				else if(input[0].Equals("slide")){
+					if(input.Length != 4){ history.RemoveAt(history.Count - 1); }
+					else{
+						int index1 = Array.IndexOf(Bitboard.piece_name, input[1]);
+						int index2 = Array.IndexOf(Bitboard.piece_name, input[2]);
+						if(index1 < 0 || index2 < 0){ Console.WriteLine("Invalid piece at slide"); }
+						else if(Array.IndexOf(Bitboard.compass_rose_index, input[3]) < 0) { Console.WriteLine("Invalid location at slide"); }
+						else{
+						
+							ulong working_set = history[history.Count-1].pieces[index1] & history[history.Count-1].pieces[index2];
+							int slide_direction = Bitboard.compass_rose[Array.IndexOf(Bitboard.compass_rose_index, input[3])];
+							
+							history[history.Count-1].pieces[index2] = history[history.Count-1].DumbSlidingAttack(working_set, slide_direction);
+							history[history.Count-1].pieces[index1] |= history[history.Count-1].pieces[index2];
+							
+							if(index1 == 0){ history[history.Count-1].pieces[1] &= ~history[history.Count-1].pieces[index2]; }
+							else if(index1 == 1){ history[history.Count-1].pieces[0] &= ~history[history.Count-1].pieces[index2]; }
+							
+							for(int i=2; i<history[history.Count-1].pieces.Length; i++){
+								if(i != index2){ history[history.Count-1].pieces[i] &= ~history[history.Count-1].pieces[index2]; }
+							}
 						}
 					}
 				}

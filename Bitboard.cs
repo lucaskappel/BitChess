@@ -86,6 +86,13 @@ namespace ZBC {
 				this.pieces[2] = this.pieces[0];
 			}
 			
+			else if(configuration.Equals("slide")){
+				this.pieces[0] = 0x0000000000100000;
+				this.pieces[7] = this.pieces[0];
+				this.pieces[1] = 0x1010000040001000;
+				this.pieces[6] = this.pieces[1];
+			}
+			
 			return;
 		} // end constructor Bitboard(string)
 		
@@ -231,6 +238,72 @@ namespace ZBC {
 			}
 			return returnString;
 		} // end override ToString
+		
+		public static void DebugBits(string debugtext, ulong bitmap){
+			Bitboard debug = new Bitboard("");
+			
+			debug.pieces[0] = bitmap;
+			debug.pieces[2] = bitmap;
+			
+			Console.WriteLine(debugtext + "\n" + debug.ToString() + "\n");
+		}
+		
+		/* Move Generation
+		Here is where the magic happens.
+		*/
+		
+		public void MoveGeneratePawn(){}
+		public void MoveGenerateKnight(){}
+		public void MoveGenerateBishop(){}
+		public void MoveGenerateRook(){}
+		public void MoveGenerateQueen(){}
+		public void MoveGenerateKing(){}
+		
+		/* Sliding Attack
+		algorithm to calculate sliding attacks. generates a ray in a direction, then makes sure it stops at the first blocker,
+		including that blocker in the return if it's a different color.
+		*/
+		
+		public ulong DumbSlidingAttack(ulong bitmap, int direction){
+			// first we have to get the full direction of the desired piece, making sure to not include the original piece.
+			ulong bitmap_span = 0x0;
+			int compassRoseIndex = Array.IndexOf(compass_rose, direction);
+			if(compassRoseIndex < 0){ 
+				Console.WriteLine("compass rose direction was invalid: " + direction);
+				return 0x0; 
+			}
+			else if(compassRoseIndex == 0){ bitmap_span = Span_N(bitmap); }
+			else if(compassRoseIndex == 1){ bitmap_span = Span_NE(bitmap); }
+			else if(compassRoseIndex == 2){ bitmap_span = Span_E(bitmap); }
+			else if(compassRoseIndex == 3){ bitmap_span = Span_SE(bitmap); }
+			else if(compassRoseIndex == 4){ bitmap_span = Span_S(bitmap); }
+			else if(compassRoseIndex == 5){ bitmap_span = Span_SW(bitmap); }
+			else if(compassRoseIndex == 6){ bitmap_span = Span_W(bitmap); }
+			else if(compassRoseIndex == 7){ bitmap_span = Span_NW(bitmap); }
+			
+			// next we have to filter the pieces to the ones that lie in the same direction
+			ulong piece_map = (this.pieces[0] | this.pieces[1]) & bitmap_span;
+			
+			// Then, we have to filter that by the blocker's span!
+			ulong blocker_span = 0x0;
+			if(compassRoseIndex == 0){ blocker_span = Span_N(piece_map); }
+			else if(compassRoseIndex == 1){ blocker_span = Span_NE(piece_map); }
+			else if(compassRoseIndex == 2){ blocker_span = Span_E(piece_map); }
+			else if(compassRoseIndex == 3){ blocker_span = Span_SE(piece_map); }
+			else if(compassRoseIndex == 4){ blocker_span = Span_S(piece_map); }
+			else if(compassRoseIndex == 5){ blocker_span = Span_SW(piece_map); }
+			else if(compassRoseIndex == 6){ blocker_span = Span_W(piece_map); }
+			else if(compassRoseIndex == 7){ blocker_span = Span_NW(piece_map); }
+			
+			// The preliminary ray is the xor of the piece's span and the blocker's span!
+			ulong return_ray = bitmap_span ^ blocker_span;
+			
+			// Finally, we have to remove the pieces of the same color from the ray, if it is being blocked by its own piece!
+			if((bitmap & this.pieces[0]) != 0x0){ return_ray = return_ray & (~this.pieces[0]); }
+			else if((bitmap & this.pieces[1]) != 0x0){ return_ray = return_ray & (~this.pieces[1]); }
+			return return_ray;
+		} //DumbSlidingAttack
+		
 		
 		/* spans 
 		The span of any individual piece in a particular direction is equal to its fill in that direction ^ itself.
@@ -432,6 +505,7 @@ namespace ZBC {
 		Blocks calculate the first blocker to a sliding attack in a particualr direction.
 		This is important for calculating legal moves as well as check/mate attacks.
 		*/
+		
 		public static ulong DumbBlock(ulong bitmap, int direction){
 			ulong span = 0x0;
 			
@@ -511,7 +585,12 @@ namespace ZBC {
 			return bitmap & (~span);
 		} // end static Blocker_SW
 		
-		// transforms //
+		/* transforms
+		usually used (in my code) to mitigate issues regarding wrapping
+		these are expensive operations, so avoid using if possible.
+		vertical mirror = 13 ops
+		diagonal mirror = 18 ops
+		*/
 		
 		public static ulong TransformMirrorVertical(ulong bitmap){
 			/* 
